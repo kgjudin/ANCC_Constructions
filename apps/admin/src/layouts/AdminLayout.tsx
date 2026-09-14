@@ -26,8 +26,7 @@ import {
   Boxes,
   Bell,
   Search,
-  CheckCircle2,
-  Sparkles
+  CheckCircle2
 } from 'lucide-react';
 import { PERMISSIONS } from '@construction/constants';
 import { ConstructionSite } from '@construction/shared-types';
@@ -150,28 +149,25 @@ export const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/80 flex font-sans text-slate-900">
-      {/* MOBILE OVERLAY BACKDROP */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-30 lg:hidden transition-opacity"
-        />
-      )}
+    <div className="min-h-screen bg-slate-100/80 font-sans text-slate-900 flex flex-col">
+      {/* 1. TOPBAR FIXED AT VERY TOP (FULL WIDTH) */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md text-slate-900 border-b border-slate-200 z-30 flex items-center justify-between px-4 sm:px-6 shadow-2xs">
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          {/* Mobile Hamburger Toggle */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl focus:outline-none transition-colors shrink-0"
+            title={sidebarOpen ? 'Close menu' : 'Open menu'}
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
 
-      {/* FULL-HEIGHT SIDEBAR MATCHING REFERENCE UI */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 transition-transform duration-200 ease-in-out flex flex-col justify-between shadow-xs`}
-      >
-        {/* SIDEBAR BRAND HEADER */}
-        <div className="h-16 px-4 flex items-center justify-between border-b border-slate-200 bg-white shrink-0">
-          <Link to="/" className="flex items-center space-x-2.5">
+          {/* ANCC Logo Branding */}
+          <Link to="/" className="flex items-center space-x-2.5 shrink-0">
             <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center font-black shadow-md shadow-teal-600/20 shrink-0">
               <Building2 className="w-4 h-4" />
             </div>
-            <div>
+            <div className="hidden sm:block">
               <span className="font-black text-xs tracking-tight text-teal-800 block uppercase">
                 ANCC CONSTRUCTION
               </span>
@@ -181,14 +177,68 @@ export const AdminLayout: React.FC = () => {
             </div>
           </Link>
 
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Breadcrumb & Global Search */}
+          <div className="flex items-center space-x-4 flex-1 max-w-xl ml-2 sm:ml-6">
+            <div className="hidden md:flex items-center space-x-2 text-xs text-slate-500 font-semibold truncate">
+              <span>Workspace</span>
+              <span>/</span>
+              <span className="text-slate-900 font-bold">{getBreadcrumbTitle()}</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-800 border border-teal-200 shrink-0">
+                Live Sync
+              </span>
+            </div>
+
+            <div className="relative flex-1 min-w-[120px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search POs, sites, materials..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs border rounded-xl bg-slate-50 border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-colors"
+              />
+            </div>
+          </div>
         </div>
 
+        {/* Top Right Header Controls */}
+        <div className="flex items-center space-x-3 shrink-0 ml-3">
+          <button className="p-2 text-slate-400 hover:text-slate-700 rounded-xl transition-colors relative">
+            <Bell className="w-5 h-5" />
+            <span className="w-2 h-2 rounded-full bg-teal-500 absolute top-1.5 right-1.5" />
+          </button>
+
+          <div className="hidden md:flex flex-col text-right">
+            <span className="text-xs font-bold text-slate-900">{employee?.full_name || user?.email}</span>
+            <span className="text-[10px] text-slate-400 font-medium">{role?.name || 'Super Admin'}</span>
+          </div>
+
+          <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-black text-xs flex items-center justify-center border border-teal-300 shadow-xs shrink-0">
+            {employee?.full_name ? employee.full_name.charAt(0) : 'S'}
+          </div>
+
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* 2. MOBILE OVERLAY BACKDROP BELOW TOPBAR */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed top-16 left-0 right-0 bottom-0 bg-slate-900/60 backdrop-blur-xs z-20 lg:hidden transition-opacity"
+        />
+      )}
+
+      {/* 3. RESPONSIVE SIDEBAR PINNED BELOW TOPBAR (top-16) */}
+      <aside
+        className={`fixed top-16 bottom-0 left-0 z-30 w-64 bg-white border-r border-slate-200 transform ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 transition-transform duration-200 ease-in-out flex flex-col justify-between shadow-sm overflow-hidden h-[calc(100vh-4rem)]`}
+      >
         {/* SIDEBAR NAV LINKS (SCROLLABLE) */}
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
           {navGroups.map((group) => {
@@ -247,7 +297,7 @@ export const AdminLayout: React.FC = () => {
                           </button>
                         </div>
 
-                        {/* DYNAMIC SITES SUB-LIST MATCHING SCREENSHOT */}
+                        {/* DYNAMIC SITES SUB-LIST */}
                         {sitesExpanded && (
                           <div className="ml-3 pl-3 border-l border-slate-200 space-y-1 py-1">
                             {sidebarSites.length === 0 ? (
@@ -336,63 +386,8 @@ export const AdminLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* RIGHT MAIN CONTENT AREA OFFSET BY SIDEBAR */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        {/* TOP NAVBAR STICKY HEADER */}
-        <header className="bg-white/95 backdrop-blur-md text-slate-900 border-b border-slate-200 sticky top-0 z-30 h-16 flex items-center justify-between px-4 sm:px-6 shadow-2xs">
-          <div className="flex items-center space-x-3 flex-1 min-w-0">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 text-slate-500 hover:text-slate-900 rounded-xl focus:outline-none"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            {/* BREADCRUMB & GLOBAL SEARCH */}
-            <div className="flex items-center space-x-4 flex-1 max-w-xl">
-              <div className="hidden sm:flex items-center space-x-2 text-xs text-slate-500 font-semibold truncate">
-                <span>Workspace</span>
-                <span>/</span>
-                <span className="text-slate-900 font-bold">{getBreadcrumbTitle()}</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-800 border border-teal-200 shrink-0">
-                  Live Sync
-                </span>
-              </div>
-
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Search POs, sites, materials..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs border rounded-xl bg-slate-50 border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* TOP RIGHT HEADER ACTIONS */}
-          <div className="flex items-center space-x-3 shrink-0 ml-4">
-            <button className="p-2 text-slate-400 hover:text-slate-700 rounded-xl transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="w-2 h-2 rounded-full bg-teal-500 absolute top-1.5 right-1.5" />
-            </button>
-
-            <div className="hidden md:flex flex-col text-right">
-              <span className="text-xs font-bold text-slate-900">{employee?.full_name || user?.email}</span>
-              <span className="text-[10px] text-slate-400 font-medium">{role?.name || 'Super Admin'}</span>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              title="Logout"
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </header>
-
-        {/* MAIN PAGE CONTAINER */}
+      {/* 4. MAIN CONTENT AREA OFFSET BY TOPBAR (pt-16) AND SIDEBAR (lg:pl-64) */}
+      <div className="flex-1 pt-16 lg:pl-64 flex flex-col min-w-0 min-h-screen">
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
           <div className="max-w-7xl mx-auto space-y-6">
             <Outlet />

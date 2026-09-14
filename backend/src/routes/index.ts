@@ -34,6 +34,7 @@ router.get('/employees', authenticateToken, requirePermission(PERMISSIONS.EMPLOY
 router.get('/employees/:id', authenticateToken, requirePermission(PERMISSIONS.EMPLOYEE_VIEW), employeeController.getEmployeeById);
 router.post('/employees', authenticateToken, requirePermission(PERMISSIONS.EMPLOYEE_CREATE), employeeController.createEmployee);
 router.patch('/employees/:id', authenticateToken, requirePermission(PERMISSIONS.EMPLOYEE_EDIT), employeeController.updateEmployee);
+router.post('/employees/:id/reset-password', authenticateToken, requirePermission(PERMISSIONS.EMPLOYEE_EDIT), employeeController.resetPassword);
 
 // Roles & Permissions API
 router.get('/permissions', authenticateToken, requirePermission(PERMISSIONS.EMPLOYEE_VIEW), roleController.getPermissions);

@@ -21,7 +21,18 @@ import {
   TrendingUp,
   LogIn,
   Server,
-  ChevronRight
+  ChevronRight,
+  MessageSquare,
+  Building2,
+  Package,
+  CalendarCheck,
+  CalendarDays,
+  Sun,
+  User,
+  Sparkles,
+  ArrowRight,
+  CheckCircle,
+  Briefcase
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -31,17 +42,20 @@ export const Dashboard: React.FC = () => {
 
   const [data, setData] = useState<any>(null);
   const [sites, setSites] = useState<any[]>([]);
+  const [holidays, setHolidays] = useState<any[]>([]);
   const [selectedSiteFilter, setSelectedSiteFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Explicitly ensure 'dark' class is removed from <html> so cards are pure white
+  // Attendance Punch State for Staff Workspace
+  const [checkedIn, setCheckedIn] = useState(true);
+  const [punchTime, setPunchTime] = useState('09:00 AM');
+
+  // Explicitly ensure 'dark' class is removed from <html>
   useEffect(() => {
     document.documentElement.classList.remove('dark');
   }, []);
 
-  // Super Admin Check Rule:
-  // "make sure that this full dash board must only view by the super admin only"
   const isSuperAdmin =
     role?.name === 'Super Admin' ||
     role?.name === 'Administrator' ||
@@ -49,72 +63,36 @@ export const Dashboard: React.FC = () => {
     user?.email === 'admin@construction.com' ||
     hasPermission('finance.approve');
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       setError('');
-      const [dashRes, sitesRes]: any[] = await Promise.all([
-        api.get('/dashboard/admin'),
-        api.get('/sites')
-      ]);
-      setData(dashRes.data);
-      setSites(sitesRes.data?.items || []);
+
+      if (isSuperAdmin) {
+        const [dashRes, sitesRes]: any[] = await Promise.all([
+          api.get('/dashboard/admin'),
+          api.get('/sites')
+        ]);
+        setData(dashRes.data);
+        setSites(sitesRes.data?.items || []);
+      } else {
+        const [sitesRes, holRes]: any[] = await Promise.all([
+          api.get('/sites').catch(() => ({ data: { items: [] } })),
+          api.get('/holidays').catch(() => ({ data: [] }))
+        ]);
+        setSites(sitesRes.data?.items || []);
+        setHolidays(Array.isArray(holRes.data) ? holRes.data : []);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load executive dashboard data');
+      setError(err.message || 'Failed to load dashboard data');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isSuperAdmin) {
-      fetchDashboardData();
-    } else {
-      setIsLoading(false);
-    }
+    fetchData();
   }, [isSuperAdmin]);
-
-  // RESTRICTED ACCESS SCREEN FOR NON-SUPER ADMIN USERS
-  if (!isSuperAdmin) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center p-6 bg-slate-100/60">
-        <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-8 shadow-xl text-center space-y-5">
-          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 mx-auto flex items-center justify-center border border-amber-200 shadow-sm">
-            <ShieldAlert className="w-8 h-8" />
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xl font-black text-slate-900">Executive Cockpit Restricted</h2>
-            <p className="text-xs text-slate-500 font-medium">
-              The full company Executive Dashboard and financial cockpit can <strong className="text-slate-800">only be viewed by Super Admin</strong> accounts.
-            </p>
-          </div>
-
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left text-xs space-y-1">
-            <p className="font-bold text-slate-800">Current Profile Details:</p>
-            <p className="text-slate-600">Account: <span className="font-mono text-brand-600 font-semibold">{employee?.full_name || user?.email}</span></p>
-            <p className="text-slate-600">Role Assigned: <span className="font-semibold text-slate-900">{role?.name || 'Employee'}</span></p>
-          </div>
-
-          <div className="pt-2 flex flex-col gap-2">
-            <Button onClick={() => navigate('/sites')} className="w-full">
-              Go to Construction Sites
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/product-requests')} className="w-full">
-              View Product Requests
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) return <LoadingState message="Connecting to Live Sync Executive Cockpit..." />;
-  if (error) return <ErrorState message={error} onRetry={fetchDashboardData} />;
-
-  const m = data?.metrics || {};
-  const purchases = data?.recent_purchases || [];
-  const activities = data?.recent_activities || [];
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -123,6 +101,313 @@ export const Dashboard: React.FC = () => {
       maximumFractionDigits: 0
     }).format(val || 0);
   };
+
+  // ----------------------------------------------------
+  // 1. COMMON INTERACTIVE DASHBOARD FOR STAFF / NON-ADMINS
+  // ----------------------------------------------------
+  if (!isSuperAdmin) {
+    if (isLoading) return <LoadingState message="Loading your personal employee portal..." />;
+
+    return (
+      <div className="space-y-6 font-sans pb-12 bg-slate-100/50 min-h-screen p-2 rounded-3xl">
+        {/* GREETING & PERSONAL PROFILE BANNER */}
+        <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-2 z-10">
+            <div className="flex items-center space-x-3">
+              <span className="px-3 py-1 rounded-full text-xs font-mono font-extrabold bg-teal-500 text-white uppercase tracking-wider">
+                Staff Portal
+              </span>
+              <span className="text-xs text-slate-400 font-mono flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-teal-400" /> Sep 14, 2026
+              </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Welcome Back, {employee?.full_name || 'Team Member'}! 👋
+            </h1>
+
+            <p className="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
+              Access your daily attendance status, leave balances, project sites, and team messages in one central cockpit.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-semibold">
+              <span className="bg-slate-800 text-teal-300 px-3 py-1 rounded-xl border border-slate-700">
+                Role: <strong className="text-white">{role?.name || 'Employee'}</strong>
+              </span>
+              <span className="bg-slate-800 text-slate-300 px-3 py-1 rounded-xl border border-slate-700 font-mono">
+                Code: <strong className="text-white">{employee?.employee_code || 'EMP-0001'}</strong>
+              </span>
+            </div>
+          </div>
+
+          <div className="z-10 flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <Button
+              onClick={() => navigate('/chat')}
+              className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-3 shadow-lg shadow-teal-600/30"
+              icon={<MessageSquare className="w-4 h-4" />}
+            >
+              Open Team Messages
+            </Button>
+          </div>
+        </div>
+
+        {/* 4 PERSONAL QUICK STATS CARDS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Attendance Status */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Today's Attendance</span>
+              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
+                <CalendarCheck className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-black text-emerald-600">
+                  {checkedIn ? 'Present' : 'Not Checked In'}
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  {checkedIn ? '09:00 AM' : 'Pending'}
+                </span>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[11px]">
+              <span className="text-slate-500 font-medium">Standard 9.0 hrs shift</span>
+              <button
+                onClick={() => setCheckedIn(!checkedIn)}
+                className="text-teal-600 font-bold hover:underline underline-offset-2"
+              >
+                {checkedIn ? 'Clock Out' : 'Punch Check In'}
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2: Leave Balances */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Leave Balance</span>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-baseline space-x-2">
+                <span className="text-2xl font-black text-slate-900">12 Days</span>
+                <span className="text-xs text-slate-400 font-semibold">available</span>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 flex justify-between text-[11px]">
+              <span className="text-teal-600 font-bold">✓ 0 Pending Requests</span>
+              <Link to="/leave" className="text-teal-600 font-bold hover:underline">Apply Leave</Link>
+            </div>
+          </div>
+
+          {/* Card 3: Construction Sites */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Sites</span>
+              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
+                <Building2 className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-baseline space-x-2">
+                <span className="text-2xl font-black text-slate-900">{sites.length || 3}</span>
+                <span className="text-xs text-slate-400 font-semibold">project locations</span>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 flex justify-between text-[11px]">
+              <span className="text-teal-600 font-bold">• Active Project Scope</span>
+              <Link to="/sites" className="text-teal-600 font-bold hover:underline">View Sites</Link>
+            </div>
+          </div>
+
+          {/* Card 4: Product Requests */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Material Requisitions</span>
+              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
+                <Package className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-baseline space-x-2">
+                <span className="text-2xl font-black text-slate-900">Active</span>
+                <span className="text-xs text-teal-600 font-semibold">• Stock Requisitions</span>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 flex justify-between text-[11px]">
+              <span className="text-slate-400">Requisitions active</span>
+              <Link to="/product-requests" className="text-teal-600 font-bold hover:underline">Submit Request</Link>
+            </div>
+          </div>
+        </div>
+
+        {/* QUICK ACTIONS BAR */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider font-mono">
+            Staff Quick Action Center
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <button
+              onClick={() => navigate('/attendance')}
+              className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-teal-50 hover:border-teal-300 text-left transition-all group flex items-center space-x-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                <CalendarCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-extrabold text-sm text-slate-900 group-hover:text-teal-800">Attendance Log</p>
+                <p className="text-[11px] text-slate-400">View daily punch matrix</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/sites')}
+              className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-teal-50 hover:border-teal-300 text-left transition-all group flex items-center space-x-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-extrabold text-sm text-slate-900 group-hover:text-teal-800">Construction Sites</p>
+                <p className="text-[11px] text-slate-400">Browse site locations</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/product-requests')}
+              className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-teal-50 hover:border-teal-300 text-left transition-all group flex items-center space-x-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                <Package className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-extrabold text-sm text-slate-900 group-hover:text-teal-800">Material Requisition</p>
+                <p className="text-[11px] text-slate-400">Request site materials</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/leave')}
+              className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-teal-50 hover:border-teal-300 text-left transition-all group flex items-center space-x-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-extrabold text-sm text-slate-900 group-hover:text-blue-800">Leave Requests</p>
+                <p className="text-[11px] text-slate-400">Submit time-off request</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* 2-COLUMN LOWER SECTION: ACTIVE SITES GRID & UPCOMING HOLIDAYS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Active Sites Directory Preview (2 Cols Wide) */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Registered Construction Sites</h3>
+                <p className="text-xs text-slate-400">Active project locations and site managers</p>
+              </div>
+              <Link to="/sites" className="text-xs font-bold text-teal-600 hover:underline flex items-center space-x-1">
+                <span>Explore All</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {sites.slice(0, 4).map((site: any) => (
+                <div
+                  key={site.id}
+                  onClick={() => navigate(`/sites/${site.id}`)}
+                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-teal-300 hover:shadow-md cursor-pointer transition-all space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                      {site.site_code}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      {site.status || 'Active'}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900">{site.name}</h4>
+                    <p className="text-xs text-slate-500 font-medium">{site.location || 'Site Location'}</p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Manager: <strong className="text-slate-800">{site.site_manager_name || 'Assigned Manager'}</strong></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Upcoming Holidays & Company Notices (1 Col Wide) */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Upcoming Holidays</h3>
+                <p className="text-xs text-slate-400">Company official calendar 2026</p>
+              </div>
+              <Link to="/holidays" className="text-xs font-bold text-teal-600 hover:underline">View All</Link>
+            </div>
+
+            <div className="space-y-3">
+              {holidays.length === 0 ? (
+                <div className="space-y-2 text-xs">
+                  <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">Gandhi Jayanti</p>
+                      <p className="text-[11px] text-slate-500">October 02, 2026</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800">Gazetted</span>
+                  </div>
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">Dussehra (Vijayadashami)</p>
+                      <p className="text-[11px] text-slate-500">October 20, 2026</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Festival</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">Diwali (Deepavali)</p>
+                      <p className="text-[11px] text-slate-500">November 08, 2026</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">National</span>
+                  </div>
+                </div>
+              ) : (
+                holidays.slice(0, 3).map((h: any) => (
+                  <div key={h.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-slate-900">{h.name}</p>
+                      <p className="text-[11px] text-slate-500">{h.date}</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800">Holiday</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 2. EXECUTIVE DASHBOARD FOR SUPER ADMINS
+  // ----------------------------------------------------
+  if (isLoading) return <LoadingState message="Connecting to Live Sync Executive Cockpit..." />;
+  if (error) return <ErrorState message={error} onRetry={fetchData} />;
+
+  const m = data?.metrics || {};
+  const purchases = data?.recent_purchases || [];
+  const activities = data?.recent_activities || [];
 
   return (
     <div className="space-y-6 font-sans pb-12 bg-slate-100/50 min-h-screen p-2 rounded-3xl">
@@ -175,7 +460,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI METRIC CARDS GRID (7 PURE WHITE CARDS) */}
+      {/* KPI METRIC CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: TOTAL ACTIVE STAFF */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -297,7 +582,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 7: TOTAL OUTSTANDING DUE (Span 2) */}
+        {/* Card 7: TOTAL OUTSTANDING DUE */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 col-span-1 sm:col-span-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -323,9 +608,9 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* LOWER SECTION: 2 COLUMNS LAYOUT (PURE WHITE CONTAINERS) */}
+      {/* LOWER SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols wide): Recent Purchase Orders */}
+        {/* Left Column: Recent Purchase Orders */}
         <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="space-y-0.5">
@@ -395,7 +680,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column (1 Col wide): System Activity Feed */}
+        {/* Right Column: System Activity Feed */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="space-y-0.5">

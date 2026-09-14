@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 import { CreateEmployeeSchema, UpdateEmployeeSchema } from '@construction/validation';
 import { logAudit } from '../../services/audit.service.js';
 import { AUDIT_MODULES } from '@construction/constants';
+import bcrypt from 'bcryptjs';
 
 export async function getEmployees(req: Request, res: Response, next: NextFunction) {
   const authReq = req as AuthenticatedRequest;
@@ -239,6 +240,49 @@ export async function updateEmployee(req: Request, res: Response, next: NextFunc
       success: true,
       message: 'Employee updated successfully',
       data: updated[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(req: Request, res: Response, next: NextFunction) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    const { id } = authReq.params;
+    const { new_password } = authReq.body;
+    const actorEmployeeId = authReq.employee?.id!;
+
+    if (!new_password || new_password.trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PASSWORD', message: 'Password must be at least 6 characters long' }
+      });
+    }
+
+    const empRows = await query(`SELECT * FROM employees WHERE id = $1`, [id]);
+    if (empRows.length === 0) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Employee not found' } });
+    }
+
+    const emp = empRows[0];
+
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+    await query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hashedPassword, emp.user_id]);
+
+    await logAudit({
+      actorUserId: authReq.user?.id,
+      actorEmployeeId,
+      action: 'EMPLOYEE_PASSWORD_RESET',
+      module: AUDIT_MODULES.EMPLOYEE,
+      entityType: 'Employee',
+      entityId: id,
+      changeMetadata: { employee_code: emp.employee_code, full_name: emp.full_name }
+    });
+
+    return res.json({
+      success: true,
+      message: `Password reset successfully for ${emp.full_name}`
     });
   } catch (error) {
     next(error);

@@ -19,7 +19,8 @@ import {
   CheckCircle2,
   Clock,
   Briefcase,
-  UserCheck
+  UserCheck,
+  KeyRound
 } from 'lucide-react';
 import { PERMISSIONS } from '@construction/constants';
 import { useAuthStore } from '../store/useAuthStore';
@@ -40,6 +41,14 @@ export const Employees: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
   const [editingEmp, setEditingEmp] = useState<Employee | null>(null);
+
+  // Password Reset Modal State
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [targetResetEmp, setTargetResetEmp] = useState<Employee | null>(null);
+  const [newPassword, setNewPassword] = useState('ANCC@2026');
+  const [passwordResetSuccess, setPasswordResetSuccess] = useState('');
+  const [passwordResetError, setPasswordResetError] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -139,6 +148,33 @@ export const Employees: React.FC = () => {
       setModalError(err.message || 'Failed to save employee profile');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenPasswordReset = (emp: Employee) => {
+    setTargetResetEmp(emp);
+    setNewPassword('ANCC@2026');
+    setPasswordResetSuccess('');
+    setPasswordResetError('');
+    setIsPasswordModalOpen(true);
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetResetEmp) return;
+    setIsResetting(true);
+    setPasswordResetError('');
+    setPasswordResetSuccess('');
+
+    try {
+      await api.post(`/employees/${targetResetEmp.id}/reset-password`, {
+        new_password: newPassword
+      });
+      setPasswordResetSuccess(`Password for ${targetResetEmp.full_name} has been updated to "${newPassword}" successfully!`);
+    } catch (err: any) {
+      setPasswordResetError(err.message || 'Failed to reset employee password');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -321,14 +357,26 @@ export const Employees: React.FC = () => {
                         </button>
 
                         {hasPermission(PERMISSIONS.EMPLOYEE_EDIT) && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(row)}
-                            className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs flex items-center space-x-1 transition-colors shadow-2xs cursor-pointer"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Edit</span>
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(row)}
+                              className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs flex items-center space-x-1 transition-colors shadow-2xs cursor-pointer"
+                            >
+                              <Edit2 className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Edit</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPasswordReset(row)}
+                              className="px-3 py-1.5 border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl font-bold text-xs flex items-center space-x-1 transition-colors shadow-2xs cursor-pointer"
+                              title="Reset Password for employee"
+                            >
+                              <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Reset Password</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -435,6 +483,48 @@ export const Employees: React.FC = () => {
             </Button>
             <Button type="submit" isLoading={isSubmitting}>
               {editingEmp ? 'Update Employee' : 'Register Employee'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Password Reset Modal */}
+      <Modal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        title={`Reset Password for ${targetResetEmp?.full_name}`}
+        subtitle={`Employee ID: ${targetResetEmp?.employee_code}`}
+      >
+        <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+          {passwordResetError && (
+            <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg flex items-center space-x-2 border border-red-200">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+              <span>{passwordResetError}</span>
+            </div>
+          )}
+
+          {passwordResetSuccess && (
+            <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-lg flex items-center space-x-2 border border-emerald-200">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{passwordResetSuccess}</span>
+            </div>
+          )}
+
+          <Input
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            minLength={6}
+          />
+
+          <div className="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+            <Button type="button" variant="outline" onClick={() => setIsPasswordModalOpen(false)}>
+              Close
+            </Button>
+            <Button type="submit" isLoading={isResetting} disabled={!!passwordResetSuccess}>
+              Reset Password
             </Button>
           </div>
         </form>
