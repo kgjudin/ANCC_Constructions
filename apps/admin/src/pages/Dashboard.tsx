@@ -727,7 +727,7 @@ export const Dashboard: React.FC = () => {
                   </div>
 
                   <p className="text-[11px] text-slate-500 font-mono mt-1 truncate">
-                    {act.details}
+                    {typeof act.details === 'object' && act.details !== null ? JSON.stringify(act.details) : String(act.details || '')}
                   </p>
                 </div>
               </div>
