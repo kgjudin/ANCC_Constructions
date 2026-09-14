@@ -10,7 +10,7 @@
     "web": "npx expo start --web",
     "typecheck": "tsc --noEmit",
     "eas:login": "npx eas-cli login",
-    "build:apk": "cross-env EAS_NO_VCS=1 npx eas-cli build -p android --profile preview"
+    "build:apk": "npx eas-cli build -p android --profile preview"
   },
   "dependencies": {
     "@construction/constants": "file:../../packages/constants",
@@ -32,7 +32,6 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~18.2.45",
-    "cross-env": "^7.0.3",
     "eas-cli": "^16.0.0",
     "typescript": "^5.3.3"
   }
