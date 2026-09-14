@@ -2,13 +2,15 @@
   "name": "mobile",
   "version": "1.0.0",
   "private": true,
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "start": "npx expo start",
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eas:login": "npx eas-cli login",
+    "build:apk": "npx eas-cli build -p android --profile preview"
   },
   "dependencies": {
     "@construction/constants": "file:../../packages/constants",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~18.2.45",
+    "eas-cli": "^16.0.0",
     "typescript": "^5.3.3"
   }
 }
