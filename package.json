@@ -1,0 +1,24 @@
+{
+  "name": "construction-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:admin": "npm --prefix apps/admin run dev",
+    "dev:mobile": "npm --prefix apps/mobile run start",
+    "seed": "npm --prefix backend run seed",
+    "build:packages": "npm --prefix packages/constants run build && npm --prefix packages/shared-types run build && npm --prefix packages/validation run build",
+    "build:backend": "npm --prefix backend run build",
+    "build:admin": "npm --prefix apps/admin run build",
+    "build": "npm run build:packages && npm run build:backend && npm run build:admin",
+    "typecheck": "npm run build:packages && tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
