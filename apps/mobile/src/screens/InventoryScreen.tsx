@@ -157,18 +157,18 @@ export const InventoryScreen: React.FC = () => {
             return (
               <View key={item.id} style={styles.stockCard}>
                 <View style={styles.stockHeader}>
-                  <Text style={styles.siteTitle}>{item.site_name}</Text>
+                  <Text style={styles.siteTitle}>{String(item.site_name || '')}</Text>
                   {isLow && <Text style={styles.lowStockBadge}>LOW STOCK</Text>}
                 </View>
-                <Text style={styles.productTitle}>{item.product_name}</Text>
+                <Text style={styles.productTitle}>{String(item.product_name || '')}</Text>
                 <View style={styles.balanceBox}>
                   <Text style={styles.balanceLabel}>Current Balance:</Text>
                   <Text style={[styles.balanceValue, isLow ? styles.textRed : styles.textGreen]}>
-                    {item.current_balance} {item.unit}
+                    {String(item.current_balance || '')} {String(item.unit || '')}
                   </Text>
                 </View>
                 <Text style={styles.metaText}>
-                  Recv: {Number(item.opening_stock || 0) + Number(item.received_qty || 0)} | Used: {item.used_qty} | Damaged: {item.damaged_qty}
+                  Recv: {Number(item.opening_stock || 0) + Number(item.received_qty || 0)} | Used: {String(item.used_qty || 0)} | Damaged: {String(item.damaged_qty || 0)}
                 </Text>
               </View>
             );
@@ -190,7 +190,7 @@ export const InventoryScreen: React.FC = () => {
               }}
             >
               <Text style={styles.fieldLabel}>Construction Site (Tap to Switch):</Text>
-              <Text style={styles.fieldValue}>{selectedSite?.name || 'Select Site'}</Text>
+              <Text style={styles.fieldValue}>{String(selectedSite?.name || 'Select Site')}</Text>
             </TouchableOpacity>
 
             {/* Product Picker */}
@@ -205,7 +205,7 @@ export const InventoryScreen: React.FC = () => {
               }}
             >
               <Text style={styles.fieldLabel}>Material / Product (Tap to Switch):</Text>
-              <Text style={styles.fieldValue}>{selectedProd?.name || 'Select Material'}</Text>
+              <Text style={styles.fieldValue}>{String(selectedProd?.name || 'Select Material')}</Text>
             </TouchableOpacity>
 
             <View style={styles.row}>
@@ -238,7 +238,7 @@ export const InventoryScreen: React.FC = () => {
               }}
             >
               <Text style={styles.fieldLabel}>From Site (Source):</Text>
-              <Text style={styles.fieldValue}>{selectedSite?.name || 'Select Source Site'}</Text>
+              <Text style={styles.fieldValue}>{String(selectedSite?.name || 'Select Source Site')}</Text>
             </TouchableOpacity>
 
             {/* To Site */}
@@ -250,7 +250,7 @@ export const InventoryScreen: React.FC = () => {
               }}
             >
               <Text style={styles.fieldLabel}>To Site (Destination):</Text>
-              <Text style={styles.fieldValue}>{destSite?.name || 'Select Destination Site'}</Text>
+              <Text style={styles.fieldValue}>{String(destSite?.name || 'Select Destination Site')}</Text>
             </TouchableOpacity>
 
             {/* Material Picker */}
@@ -265,7 +265,7 @@ export const InventoryScreen: React.FC = () => {
               }}
             >
               <Text style={styles.fieldLabel}>Material to Transfer:</Text>
-              <Text style={styles.fieldValue}>{selectedProd?.name || 'Select Material'}</Text>
+              <Text style={styles.fieldValue}>{String(selectedProd?.name || 'Select Material')}</Text>
             </TouchableOpacity>
 
             <View style={styles.row}>
