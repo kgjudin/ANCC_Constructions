@@ -1,26 +1,15 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 
-// Dynamically extract the computer's LAN IP address from Expo hostUri
+const PRODUCTION_API_URL = 'https://ancc-constructions-1.onrender.com/api/v1';
+
+// An Expo environment variable can still override this URL for local development.
 const getDynamicApiUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // Extract IP address from Expo bundler host (e.g. 192.168.1.50:8081 -> 192.168.1.50)
-  const hostUri = Constants.expoConfig?.hostUri;
-  if (hostUri) {
-    const lanIp = hostUri.split(':')[0];
-    return `http://${lanIp}:5000/api/v1`;
-  }
-
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:5000/api/v1';
-  }
-
-  return 'http://localhost:5000/api/v1';
+  return PRODUCTION_API_URL;
 };
 
 const BASE_URL = getDynamicApiUrl();
