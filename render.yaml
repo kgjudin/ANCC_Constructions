@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ancc-backend
+    runtime: node
+    # This service must be built from the monorepo root. The backend imports
+    # the sibling packages in /packages through local file dependencies.
+    rootDir: .
+    buildCommand: npm ci && npm run build:packages && npm run build:backend
+    startCommand: npm --prefix backend start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
