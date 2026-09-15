@@ -164,7 +164,7 @@ export const SiteSchema = z.object({
 
 // Expense Validation Schemas
 export const ExpenseSchema = z.object({
-  category: z.nativeEnum(ExpenseCategory),
+  category: z.string().min(1, 'Category is required'),
   amount: z.number().positive('Amount must be positive'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   supplier_id: z.string().uuid().optional().or(z.literal('')).or(z.null()),

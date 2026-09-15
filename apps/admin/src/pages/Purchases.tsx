@@ -4,6 +4,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
+import { CreatableSelect } from '../components/ui/CreatableSelect';
 import { Modal } from '../components/ui/Modal';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { ErrorState } from '../components/ui/ErrorState';
@@ -157,15 +158,35 @@ export const Purchases: React.FC = () => {
     ]);
   };
 
-  const handleItemChange = (index: number, field: keyof PurchaseItemInput, value: any) => {
+  const handleItemChange = async (index: number, field: keyof PurchaseItemInput, value: any) => {
     const updated = [...items];
     if (field === 'product_id') {
-      const selectedProd = products.find((p) => p.id === value);
+      let selectedProd = products.find((p) => p.id === value);
+      
+      // If not found in existing products, it's a new custom product created by CreatableSelect
+      if (!selectedProd) {
+        try {
+          // Create product on the fly
+          const res: any = await api.post('/products', {
+            name: value,
+            unit: 'Units', // Default unit
+            standard_rate: 0,
+            description: 'Auto-created from purchase order'
+          });
+          selectedProd = res.data.data;
+          // Add to local products state so it appears in dropdowns
+          setProducts((prev) => [...prev, selectedProd!]);
+        } catch (err) {
+          console.error('Failed to create custom product:', err);
+          return;
+        }
+      }
+
       if (selectedProd) {
         updated[index].product_id = selectedProd.id;
         updated[index].product_name = selectedProd.name;
         updated[index].unit = selectedProd.unit;
-        updated[index].unit_rate = Number(selectedProd.standard_rate || 100);
+        updated[index].unit_rate = Number(selectedProd.standard_rate || 0);
       }
     } else {
       (updated[index] as any)[field] = value;
@@ -554,10 +575,11 @@ export const Purchases: React.FC = () => {
             {items.map((item, idx) => (
               <div key={idx} className="p-3 bg-white rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-6 gap-2 items-center text-xs">
                 <div className="md:col-span-2">
-                  <Select
+                  <CreatableSelect
                     value={item.product_id}
-                    onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
+                    onChange={(val) => handleItemChange(idx, 'product_id', val)}
                     options={products.map((p) => ({ label: `${p.name} (${p.unit})`, value: p.id }))}
+                    placeholder="Select or type to create new product..."
                   />
                 </div>
                 <div>

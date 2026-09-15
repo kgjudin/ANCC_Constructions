@@ -5,6 +5,7 @@ import { DataTable, Column } from '../components/ui/DataTable';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
+import { CreatableSelect } from '../components/ui/CreatableSelect';
 import { Modal } from '../components/ui/Modal';
 import { ErrorState } from '../components/ui/ErrorState';
 import { Receipt, Plus, Search } from 'lucide-react';
@@ -134,11 +135,13 @@ export const Expenses: React.FC = () => {
           {modalError && <p className="text-xs text-red-600 font-semibold">{modalError}</p>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select
+            <CreatableSelect
               label="Expense Category"
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-              options={Object.values(ExpenseCategory).map((c) => ({ label: String(c), value: String(c) }))}
+              onChange={(val) => setFormData({ ...formData, category: val })}
+              options={[
+                ...Object.values(ExpenseCategory).map((c) => ({ label: String(c), value: String(c) }))
+              ]}
               required
             />
             <Input

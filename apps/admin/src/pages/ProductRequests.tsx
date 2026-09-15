@@ -4,6 +4,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
+import { CreatableSelect } from '../components/ui/CreatableSelect';
 import { Modal } from '../components/ui/Modal';
 import { ErrorState } from '../components/ui/ErrorState';
 import { LoadingState } from '../components/ui/LoadingState';
@@ -579,15 +580,34 @@ export const ProductRequests: React.FC = () => {
           />
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-            <Select
+            <CreatableSelect
               label="Select Existing Product (or Type Custom Below)"
               value={formData.product_id}
-              onChange={(e) => {
-                const selProd = products.find((p) => p.id === e.target.value);
+              onChange={async (val) => {
+                let selProd = products.find((p) => p.id === val);
+                
+                if (!selProd && val !== '') {
+                  try {
+                    const res: any = await api.post('/products', {
+                      name: val,
+                      unit: 'Units',
+                      standard_rate: 0,
+                      description: 'Auto-created from product request'
+                    });
+                    selProd = res.data.data;
+                    setProducts((prev) => [...prev, selProd!]);
+                  } catch (err) {
+                    console.error('Failed to create custom product:', err);
+                    // Fallback to just setting the name manually if creation fails
+                    setFormData((prev) => ({ ...prev, product_id: '', product_name: val }));
+                    return;
+                  }
+                }
+
                 setFormData((prev) => ({
                   ...prev,
-                  product_id: e.target.value,
-                  product_name: selProd?.name || prev.product_name,
+                  product_id: selProd?.id || '',
+                  product_name: selProd?.name || (val === '' ? '' : prev.product_name),
                   category: selProd?.category_name || prev.category,
                   unit: selProd?.unit || prev.unit
                 }));

@@ -3,6 +3,7 @@ import api from '../services/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
+import { CreatableSelect } from '../components/ui/CreatableSelect';
 import { Modal } from '../components/ui/Modal';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { ErrorState } from '../components/ui/ErrorState';
@@ -613,12 +614,18 @@ export const AccountantFinance: React.FC = () => {
                           />
                         </td>
                         <td className="p-3">
-                          <input
-                            type="text"
+                          <CreatableSelect
+                            options={[
+                              { label: '50 Bags', value: '50 Bags' },
+                              { label: 'KG', value: 'KG' },
+                              { label: 'm³', value: 'm³' },
+                              { label: 'Tons', value: 'Tons' },
+                              { label: 'Litres', value: 'Litres' },
+                              { label: 'Units', value: 'Units' }
+                            ]}
                             placeholder="e.g. 50 Bags"
-                            className="w-full px-3 py-2 text-xs border rounded-xl bg-slate-50 border-slate-200 text-slate-600 font-mono"
-                            value={item.category_unit || '50 Bags'}
-                            onChange={(e) => handleItemChange(idx, 'category_unit', e.target.value)}
+                            value={item.category_unit || ''}
+                            onChange={(val) => handleItemChange(idx, 'category_unit', val)}
                           />
                         </td>
                         <td className="p-3 text-center">

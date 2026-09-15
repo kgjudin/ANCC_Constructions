@@ -51,6 +51,10 @@ export const AdminLayout: React.FC = () => {
   const [sidebarSites, setSidebarSites] = useState<ConstructionSite[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [readNotifications, setReadNotifications] = useState<string[]>(() => {
+    const saved = localStorage.getItem('read_notifications');
+    return saved ? JSON.parse(saved) : [];
+  });
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -83,6 +87,24 @@ export const AdminLayout: React.FC = () => {
     fetchSidebarSites();
     fetchPendingApprovals();
   }, [location.pathname]);
+
+  const markAsRead = (e: React.MouseEvent, docId: string) => {
+    e.stopPropagation();
+    if (!readNotifications.includes(docId)) {
+      const updated = [...readNotifications, docId];
+      setReadNotifications(updated);
+      localStorage.setItem('read_notifications', JSON.stringify(updated));
+    }
+  };
+
+  const markAllAsRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = [...new Set([...readNotifications, ...pendingApprovals.map((d) => d.id)])];
+    setReadNotifications(updated);
+    localStorage.setItem('read_notifications', JSON.stringify(updated));
+  };
+
+  const unreadCount = pendingApprovals.filter(doc => !readNotifications.includes(doc.id)).length;
 
   const navGroups: NavGroup[] = [
     {
@@ -222,41 +244,65 @@ export const AdminLayout: React.FC = () => {
               className="p-2 text-slate-400 hover:text-slate-700 rounded-xl transition-colors relative"
             >
               <Bell className="w-5 h-5" />
-              {pendingApprovals.length > 0 && (
+              {unreadCount > 0 && (
                 <span className="w-3 h-3 rounded-full bg-rose-500 absolute top-1 right-1 border-2 border-white flex items-center justify-center text-[8px] font-bold text-white">
-                  {pendingApprovals.length}
+                  {unreadCount}
                 </span>
               )}
             </button>
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden">
                 <div className="p-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900">Pending Approvals</span>
-                  <span className="text-[10px] font-semibold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">{pendingApprovals.length} New</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-bold text-slate-900">Pending Approvals</span>
+                    <span className="text-[10px] font-semibold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">{unreadCount} New</span>
+                  </div>
+                  {unreadCount > 0 && (
+                    <button onClick={markAllAsRead} className="text-[10px] text-teal-600 hover:text-teal-700 font-bold transition-colors">
+                      Mark all as read
+                    </button>
+                  )}
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {pendingApprovals.length === 0 ? (
                     <div className="p-4 text-center text-xs text-slate-500">No pending approvals.</div>
                   ) : (
-                    pendingApprovals.map((doc) => (
-                      <button
-                        key={doc.id}
-                        onClick={() => {
-                          setShowNotifications(false);
-                          navigate('/finance?tab=approvals');
-                        }}
-                        className="w-full text-left p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors flex items-start space-x-3"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                          <Receipt className="w-4 h-4" />
+                    pendingApprovals.map((doc) => {
+                      const isRead = readNotifications.includes(doc.id);
+                      return (
+                        <div
+                          key={doc.id}
+                          className={`w-full text-left p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors flex items-start space-x-3 ${isRead ? 'opacity-60' : ''}`}
+                        >
+                          <button
+                            onClick={() => {
+                              setShowNotifications(false);
+                              navigate('/finance?tab=approvals');
+                            }}
+                            className="flex-1 flex items-start space-x-3 text-left"
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isRead ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 text-amber-600'}`}>
+                              <Receipt className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className={`text-xs font-bold ${isRead ? 'text-slate-600' : 'text-slate-900'}`}>New Bill: {doc.invoice_no}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5">{doc.vendor_name}</p>
+                              <p className={`text-[10px] font-mono font-bold mt-1 ${isRead ? 'text-slate-500' : 'text-emerald-600'}`}>₹{Number(doc.total || 0).toLocaleString('en-IN')}</p>
+                            </div>
+                          </button>
+                          
+                          {!isRead && (
+                            <button
+                              onClick={(e) => markAsRead(e, doc.id)}
+                              className="p-1.5 text-slate-300 hover:text-teal-600 rounded-lg hover:bg-teal-50 transition-colors"
+                              title="Mark as read"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-slate-900">New Bill: {doc.invoice_no}</p>
-                          <p className="text-[10px] text-slate-500 mt-0.5">{doc.vendor_name}</p>
-                          <p className="text-[10px] font-mono font-bold text-emerald-600 mt-1">₹{Number(doc.total || 0).toLocaleString('en-IN')}</p>
-                        </div>
-                      </button>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

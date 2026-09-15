@@ -3,6 +3,7 @@ import api from '../services/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
+import { CreatableSelect } from '../components/ui/CreatableSelect';
 import { Modal } from '../components/ui/Modal';
 import { ErrorState } from '../components/ui/ErrorState';
 import { Package, Plus, Search, Edit2, Upload, Layers, DollarSign, CheckCircle2 } from 'lucide-react';
@@ -218,7 +219,21 @@ export const Products: React.FC = () => {
           <Input label="Product Name" placeholder="e.g. OPC 53 Grade Cement / TMT Rebar 12mm" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Category" value={formData.category_id} onChange={(e) => setFormData({ ...formData, category_id: e.target.value })} options={categories.map((c) => ({ label: c.name, value: c.id }))} />
-            <Input label="Measuring Unit" placeholder="e.g. Bags, KG, m³" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })} required />
+            <CreatableSelect
+              label="Measuring Unit"
+              placeholder="e.g. Bags, KG, m³"
+              value={formData.unit}
+              onChange={(val) => setFormData({ ...formData, unit: val })}
+              options={[
+                { label: 'Bags', value: 'Bags' },
+                { label: 'KG', value: 'KG' },
+                { label: 'm³', value: 'm³' },
+                { label: 'Tons', value: 'Tons' },
+                { label: 'Litres', value: 'Litres' },
+                { label: 'Units', value: 'Units' }
+              ]}
+              required
+            />
           </div>
           <Input label="Standard Reference Rate (₹)" type="number" step="0.01" placeholder="0.00" value={formData.standard_rate} onChange={(e) => setFormData({ ...formData, standard_rate: e.target.value })} required />
           <Input label="Description / Technical Specs" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Optional specifications" />
