@@ -49,6 +49,8 @@ export const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sitesExpanded, setSitesExpanded] = useState(true);
   const [sidebarSites, setSidebarSites] = useState<ConstructionSite[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -65,8 +67,21 @@ export const AdminLayout: React.FC = () => {
     }
   };
 
+  const fetchPendingApprovals = async () => {
+    try {
+      if (hasPermission(PERMISSIONS.FINANCE_VIEW)) {
+        const res: any = await api.get('/finance/documents');
+        const docs = res.data?.items || [];
+        setPendingApprovals(docs.filter((d: any) => d.status === 'Pending'));
+      }
+    } catch (err) {
+      console.error('Failed to load pending approvals:', err);
+    }
+  };
+
   useEffect(() => {
     fetchSidebarSites();
+    fetchPendingApprovals();
   }, [location.pathname]);
 
   const navGroups: NavGroup[] = [
@@ -116,7 +131,7 @@ export const AdminLayout: React.FC = () => {
     {
       groupName: 'Administration',
       items: [
-        { name: 'Roles & Permissions', path: '/roles', icon: <ShieldCheck className="w-4 h-4" />, permission: PERMISSIONS.EMPLOYEE_VIEW }
+        { name: 'Roles & Permissions', path: '/roles', icon: <ShieldCheck className="w-4 h-4" />, permission: PERMISSIONS.ROLE_VIEW }
       ]
     }
   ];
@@ -201,10 +216,52 @@ export const AdminLayout: React.FC = () => {
 
         {/* Top Right Header Controls */}
         <div className="flex items-center space-x-3 shrink-0 ml-3">
-          <button className="p-2 text-slate-400 hover:text-slate-700 rounded-xl transition-colors relative">
-            <Bell className="w-5 h-5" />
-            <span className="w-2 h-2 rounded-full bg-teal-500 absolute top-1.5 right-1.5" />
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 text-slate-400 hover:text-slate-700 rounded-xl transition-colors relative"
+            >
+              <Bell className="w-5 h-5" />
+              {pendingApprovals.length > 0 && (
+                <span className="w-3 h-3 rounded-full bg-rose-500 absolute top-1 right-1 border-2 border-white flex items-center justify-center text-[8px] font-bold text-white">
+                  {pendingApprovals.length}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden">
+                <div className="p-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900">Pending Approvals</span>
+                  <span className="text-[10px] font-semibold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">{pendingApprovals.length} New</span>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {pendingApprovals.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-500">No pending approvals.</div>
+                  ) : (
+                    pendingApprovals.map((doc) => (
+                      <button
+                        key={doc.id}
+                        onClick={() => {
+                          setShowNotifications(false);
+                          navigate('/finance?tab=approvals');
+                        }}
+                        className="w-full text-left p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors flex items-start space-x-3"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                          <Receipt className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">New Bill: {doc.invoice_no}</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{doc.vendor_name}</p>
+                          <p className="text-[10px] font-mono font-bold text-emerald-600 mt-1">₹{Number(doc.total || 0).toLocaleString('en-IN')}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="hidden md:flex flex-col text-right">
             <span className="text-xs font-bold text-slate-900">{employee?.full_name || user?.email}</span>

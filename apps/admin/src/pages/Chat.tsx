@@ -12,7 +12,9 @@ import {
   CheckCheck,
   Circle,
   MessageCircle,
-  ArrowLeft
+  ArrowLeft,
+  Paperclip,
+  X
 } from 'lucide-react';
 
 interface ChatContact {
@@ -150,18 +152,44 @@ export const Chat: React.FC = () => {
     setMobileView('chat'); // Switch to full chat view on mobile
   };
 
+  const [selectedFile, setSelectedFile] = useState<{ file: File; base64: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setSelectedFile({ file, base64: ev.target.result as string });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!newMessage.trim() || !activeRoom || isSending) return;
+    if ((!newMessage.trim() && !selectedFile) || !activeRoom || isSending) return;
 
     try {
       setIsSending(true);
-      const res: any = await api.post(`/chat/rooms/${activeRoom.id}/messages`, {
-        content: newMessage.trim()
-      });
+      
+      const payload: any = { content: newMessage.trim() };
+      
+      if (selectedFile) {
+        payload.file = {
+          name: selectedFile.file.name,
+          type: selectedFile.file.type,
+          base64: selectedFile.base64
+        };
+      }
+
+      const res: any = await api.post(`/chat/rooms/${activeRoom.id}/messages`, payload);
       const sentMsg = res.data || res;
       setMessages((prev) => [...prev, sentMsg]);
       setNewMessage('');
+      setSelectedFile(null);
     } catch (err) {
       console.error('Failed to send message:', err);
     } finally {
@@ -371,7 +399,26 @@ export const Chat: React.FC = () => {
                             {msg.sender_name}
                           </span>
                         )}
-                        <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        <div className="text-xs leading-relaxed whitespace-pre-wrap">
+                          {msg.content.split(/(?:!\[([^\]]+)\]\(([^)]+)\)|\[([^\]]+)\]\(([^)]+)\))/g).map((part, i, arr) => {
+                            if (i % 5 === 0) return part; // Regular text
+                            if (i % 5 === 1 && part) {
+                              // Image!
+                              const alt = part;
+                              const url = arr[i+1];
+                              const fullUrl = url.startsWith('/') ? `${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'https://ancc-constructions-1.onrender.com'}${url}` : url;
+                              return <img key={i} src={fullUrl} alt={alt} className="mt-2 rounded-xl max-w-full h-auto border border-slate-200" />;
+                            }
+                            if (i % 5 === 3 && part) {
+                              // Link!
+                              const text = part;
+                              const url = arr[i+1];
+                              const fullUrl = url.startsWith('/') ? `${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'https://ancc-constructions-1.onrender.com'}${url}` : url;
+                              return <a key={i} href={fullUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center space-x-1.5 px-3 py-2 bg-black/5 rounded-lg font-bold text-emerald-700 dark:text-emerald-300 hover:underline"><Paperclip className="w-3 h-3" /><span>{text}</span></a>;
+                            }
+                            return null; // The URL parts are handled in the if blocks above
+                          })}
+                        </div>
                         <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 dark:text-slate-300 float-right ml-3">
                           <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           {isMe && <CheckCheck className="w-3 h-3 text-blue-500" />}
@@ -385,21 +432,47 @@ export const Chat: React.FC = () => {
             </div>
 
             {/* Bottom Message Input Bar */}
-            <form onSubmit={handleSendMessage} className="p-2.5 md:p-3 bg-[#f0f2f5] dark:bg-[#202c33] border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-2">
-              <input
-                type="text"
-                placeholder={`Type a message to ${activeContact ? activeContact.full_name : activeRoom.name}...`}
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                className="flex-1 px-4 py-2.5 md:py-3 text-xs bg-white dark:bg-[#2a3942] text-slate-900 dark:text-white rounded-xl focus:outline-none border-none placeholder-slate-400 shadow-xs"
-              />
-              <button
-                type="submit"
-                disabled={!newMessage.trim() || isSending}
-                className="w-10 h-10 md:w-11 md:h-11 bg-[#00a884] hover:bg-[#008069] disabled:opacity-50 text-white rounded-xl flex items-center justify-center shadow-md transition-transform active:scale-95 shrink-0"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+            <form onSubmit={handleSendMessage} className="p-2.5 md:p-3 bg-[#f0f2f5] dark:bg-[#202c33] border-t border-slate-200 dark:border-slate-700/50 flex flex-col gap-2">
+              {selectedFile && (
+                <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 p-2 rounded-lg text-xs w-fit">
+                  <Paperclip className="w-4 h-4 text-slate-500" />
+                  <span className="truncate max-w-[200px] text-slate-700 dark:text-slate-300">{selectedFile.file.name}</span>
+                  <button type="button" onClick={() => setSelectedFile(null)} className="text-slate-400 hover:text-rose-500">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleSelectFile}
+                  className="hidden"
+                  accept="image/*,application/pdf"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                  title="Attach File"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
+                <input
+                  type="text"
+                  placeholder={`Type a message to ${activeContact ? activeContact.full_name : activeRoom.name}...`}
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  className="flex-1 px-4 py-2.5 md:py-3 text-xs bg-white dark:bg-[#2a3942] text-slate-900 dark:text-white rounded-xl focus:outline-none border-none placeholder-slate-400 shadow-xs"
+                />
+                <button
+                  type="submit"
+                  disabled={(!newMessage.trim() && !selectedFile) || isSending}
+                  className="w-10 h-10 md:w-11 md:h-11 bg-[#00a884] hover:bg-[#008069] disabled:opacity-50 text-white rounded-xl flex items-center justify-center shadow-md transition-transform active:scale-95 shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
             </form>
           </>
         ) : (

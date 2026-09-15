@@ -70,7 +70,7 @@ export const AppRoutes: React.FC = () => {
         <Route index element={<Dashboard />} />
         <Route path="chat" element={<PermissionGuard permission={PERMISSIONS.CHAT_VIEW} moduleName="Team Chat"><Chat /></PermissionGuard>} />
         <Route path="employees" element={<PermissionGuard permission={PERMISSIONS.EMPLOYEE_VIEW} moduleName="Employees Directory"><Employees /></PermissionGuard>} />
-        <Route path="roles" element={<PermissionGuard permission={PERMISSIONS.EMPLOYEE_VIEW} moduleName="Roles & Permissions"><RolesPermissions /></PermissionGuard>} />
+        <Route path="roles" element={<PermissionGuard permission={PERMISSIONS.ROLE_VIEW} moduleName="Roles & Permissions"><RolesPermissions /></PermissionGuard>} />
         <Route path="attendance" element={<PermissionGuard permission={PERMISSIONS.ATTENDANCE_VIEW} moduleName="Attendance"><AttendancePage /></PermissionGuard>} />
         <Route path="leave" element={<PermissionGuard permission={PERMISSIONS.LEAVE_VIEW} moduleName="Leave Management"><LeaveManagement /></PermissionGuard>} />
         <Route path="holidays" element={<PermissionGuard permission={PERMISSIONS.HOLIDAY_VIEW} moduleName="Holidays Calendar"><Holidays /></PermissionGuard>} />

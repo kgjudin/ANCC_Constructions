@@ -35,15 +35,19 @@ import { PERMISSIONS } from '@construction/constants';
 import { ConstructionSite, FinancialDocument, FinancialLineItem } from '@construction/shared-types';
 import { useAuthStore } from '../store/useAuthStore';
 
+import { useSearchParams } from 'react-router-dom';
+
 export const AccountantFinance: React.FC = () => {
   const { hasPermission } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'approvals' ? 'approvals' : 'console';
   const [documents, setDocuments] = useState<FinancialDocument[]>([]);
   const [sites, setSites] = useState<ConstructionSite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   // Active View Tab: 'console' (Create Bill) vs 'approvals' (Admin Approval Console & Bill List)
-  const [activeTab, setActiveTab] = useState<'console' | 'approvals'>('console');
+  const [activeTab, setActiveTab] = useState<'console' | 'approvals'>(initialTab as 'console' | 'approvals');
 
   // Selected Site
   const [selectedSiteId, setSelectedSiteId] = useState('');
@@ -52,23 +56,16 @@ export const AccountantFinance: React.FC = () => {
   const [billNumber, setBillNumber] = useState('');
   const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentTerms, setPaymentTerms] = useState('Net 30 Days (Standard)');
-  const [vendorName, setVendorName] = useState('ABC Building Materials Pvt Ltd (GSTIN: 27AAACA1234F1Z5)');
+  const [vendorName, setVendorName] = useState('');
 
   // Dynamic Line Items
   const [lineItems, setLineItems] = useState<any[]>([
     {
-      description: 'Grade OPC 53 Ready-Mix Concrete - Batch Delivery',
-      category_unit: '50 Bags',
-      quantity: 50,
-      unit_price: 400,
-      amount: 20000
-    },
-    {
-      description: 'Fe550 High-Yield TMT Steel Rebar (12mm dia, bundle lots)',
-      category_unit: '250 KG',
-      quantity: 250,
-      unit_price: 68,
-      amount: 17000
+      description: '',
+      category_unit: '',
+      quantity: 1,
+      unit_price: 0,
+      amount: 0
     }
   ]);
 
@@ -86,6 +83,9 @@ export const AccountantFinance: React.FC = () => {
   const [adminRemark, setAdminRemark] = useState('');
   const [remarkError, setRemarkError] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Toast Notification State
+  const [showNotification, setShowNotification] = useState(false);
 
   // Fetch Sites and Existing Bills
   const fetchData = async () => {
@@ -196,11 +196,18 @@ export const AccountantFinance: React.FC = () => {
       await api.post('/finance/documents', payload);
 
       setSuccessMessage(`Bill ${billNumber} created successfully & set to "Pending Approval". PDF Generated!`);
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 5000);
 
-      // Reset Form with next bill number
+      // Reset Form with next bill number and clear data
       const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
       const seq = String(documents.length + 4).padStart(3, '0');
       setBillNumber(`INV-${dateStr}-${seq}`);
+      setVendorName('');
+      setLineItems([{ description: '', category_unit: '', quantity: 1, unit_price: 0, amount: 0 }]);
+      setTax(0);
+      setDiscount(0);
+      
       fetchData();
     } catch (err: any) {
       setFormError(err.message || 'Failed to generate PDF and save bill');
@@ -214,7 +221,9 @@ export const AccountantFinance: React.FC = () => {
     const printableWindow = window.open('', '_blank');
     if (!printableWindow) return;
 
-    const itemsRows = ((doc.items as any[]) || lineItems).map((item, idx) => `
+    const currentItems = (doc.items && doc.items.length > 0) ? doc.items : lineItems;
+    
+    const itemsRows = currentItems.map((item: any, idx: number) => `
       <tr>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${idx + 1}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.description}</td>
@@ -224,17 +233,24 @@ export const AccountantFinance: React.FC = () => {
       </tr>
     `).join('');
 
+    const docSubtotal = Number(doc.subtotal !== undefined ? doc.subtotal : subtotal).toFixed(2);
+    const docTax = Number(doc.tax !== undefined ? doc.tax : tax).toFixed(2);
+    const docDiscount = Number(doc.discount !== undefined ? doc.discount : discount).toFixed(2);
+    const docTotal = Number(doc.total !== undefined ? doc.total : totalAmount).toFixed(2);
+
     printableWindow.document.write(`
       <html>
         <head>
           <title>Invoice - ${doc.invoice_no || billNumber}</title>
           <style>
-            body { font-family: sans-serif; padding: 20px; color: #1e293b; }
-            .header { display: flex; justify-space-between; border-bottom: 2px solid #0d9488; padding-bottom: 15px; }
+            body { font-family: sans-serif; padding: 20px; color: #1e293b; line-height: 1.5; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0d9488; padding-bottom: 15px; }
             .title { font-size: 24px; font-weight: bold; color: #0d9488; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             th { background: #f1f5f9; padding: 10px; text-align: left; }
-            .grand-total { font-size: 18px; font-weight: bold; color: #0d9488; margin-top: 8px; text-align: right; }
+            .totals-container { width: 300px; margin-left: auto; margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
+            .totals-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+            .grand-total { font-size: 18px; font-weight: bold; color: #0d9488; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px; }
           </style>
         </head>
         <body>
@@ -265,7 +281,24 @@ export const AccountantFinance: React.FC = () => {
               ${itemsRows}
             </tbody>
           </table>
-          <div class="grand-total">Total Amount: ₹${(doc.total || totalAmount).toFixed(2)}</div>
+          <div class="totals-container">
+            <div class="totals-row">
+              <span>Subtotal:</span>
+              <strong>₹${docSubtotal}</strong>
+            </div>
+            <div class="totals-row">
+              <span>Tax:</span>
+              <strong>₹${docTax}</strong>
+            </div>
+            <div class="totals-row">
+              <span>Discount:</span>
+              <strong>₹${docDiscount}</strong>
+            </div>
+            <div class="totals-row grand-total">
+              <span>Total Amount:</span>
+              <span>₹${docTotal}</span>
+            </div>
+          </div>
         </body>
       </html>
     `);
@@ -873,6 +906,23 @@ export const AccountantFinance: React.FC = () => {
               </div>
             )}
           </Modal>
+        </div>
+      )}
+      {/* FIXED TOAST NOTIFICATION BOX FOR PDF SAVE */}
+      {showNotification && (
+        <div className="fixed top-24 right-6 z-50 bg-white border border-emerald-200 shadow-2xl rounded-2xl p-4 flex items-start space-x-4 max-w-sm animate-in slide-in-from-right-8 fade-in duration-300">
+          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-bold text-slate-900">PDF Saved Successfully</h4>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium leading-relaxed">
+              Bill generated waiting for approval
+            </p>
+          </div>
+          <button onClick={() => setShowNotification(false)} className="text-slate-400 hover:text-slate-700">
+            <XCircle className="w-5 h-5" />
+          </button>
         </div>
       )}
     </div>

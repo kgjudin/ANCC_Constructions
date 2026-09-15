@@ -4,6 +4,11 @@ export const PERMISSIONS = {
   EMPLOYEE_EDIT: 'employee.edit',
   EMPLOYEE_DELETE: 'employee.delete',
 
+  ROLE_VIEW: 'role.view',
+  ROLE_CREATE: 'role.create',
+  ROLE_EDIT: 'role.edit',
+  ROLE_DELETE: 'role.delete',
+
   ATTENDANCE_VIEW: 'attendance.view',
   ATTENDANCE_EDIT: 'attendance.edit',
 
