@@ -23,8 +23,15 @@ export const Expenses: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
-  const [formData, setFormData] = useState({
-    category: ExpenseCategory.MATERIAL,
+  const [formData, setFormData] = useState<{
+    category: string;
+    amount: number;
+    date: string;
+    supplier_id: string;
+    description: string;
+    receipt_url: string;
+  }>({
+    category: ExpenseCategory.MATERIAL as string,
     amount: 1000,
     date: new Date().toISOString().split('T')[0],
     supplier_id: '',

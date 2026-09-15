@@ -245,7 +245,7 @@ export interface Purchase {
 export interface Expense {
   id: string;
   company_id: string;
-  category: ExpenseCategory;
+  category: ExpenseCategory | string;
   amount: number;
   date: string;
   supplier_id?: string;
