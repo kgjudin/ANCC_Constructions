@@ -575,8 +575,10 @@ export const ProductRequests: React.FC = () => {
             label="Target Construction Site"
             value={formData.site_id}
             onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
-            options={sites.map((s) => ({ label: `${s.name} (${s.site_code})`, value: s.id }))}
+            options={sites.length > 0 ? sites.map((s) => ({ label: `${s.name} (${s.site_code || 'SITE'})`, value: s.id })) : []}
+            placeholder={sites.length > 0 ? "Select a site" : "No sites available (Create one first)"}
             required
+            disabled={sites.length === 0}
           />
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
@@ -705,7 +707,7 @@ export const ProductRequests: React.FC = () => {
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" isLoading={isSubmitting}>
+            <Button type="submit" isLoading={isSubmitting} disabled={sites.length === 0 || !formData.site_id}>
               Submit Request
             </Button>
           </div>
